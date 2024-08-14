@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>21 Card Magic</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .main-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 90%;
+        max-width: 1200px;
+        background: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+      }
+      h1 {
+        margin: 0;
+        text-align: center;
+      }
+      .instructions {
+        margin: 20px 0;
+        font-size: 18px;
+        color: #333;
+        text-align: center;
+      }
+      .content-container {
+        display: flex;
+        align-items: flex-start;
+        width: 100%;
+      }
+      .button-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: 20px; /* Space between buttons and card grid */
+        width: 150px;
+      }
+      .reset-button {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        background-color: #dc3545;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-bottom: 20px;
+      }
+      .reset-button:hover {
+        background-color: #c82333;
+      }
+      .column-buttons-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        width: 100%;
+        max-width: 800px;
+        max-height: calc(
+          100vh - 300px
+        ); /* Adjust for header and instructions */
+        overflow-y: auto;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        width: 100%;
+        max-width: 80px;
+        max-height: 120px;
+      }
+      .card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      button:focus {
+        outline: none;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        padding-top: 100px;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .modal-content {
+        background-color: white;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 300px;
+        text-align: center;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        animation: modalIn 0.3s ease-out;
+      }
+      .modal-content img {
+        width: 100px;
+        height: 150px;
+        margin-bottom: 20px;
+      }
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .close:hover {
+        color: black;
+      }
+      @keyframes modalIn {
+        from {
+          opacity: 0;
+          transform: translateY(-50px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main-container">
+      <h1>21 Card Magic</h1>
+      <p class="instructions">
+        Pick a card in your mind, then select the column below that contains
+        your chosen card.
+      </p>
+      <div class="content-container">
+        <div class="button-container">
+          <button class="reset-button" onclick="resetGame()">Reset Game</button>
+          <div class="column-buttons-container">
+            <button onclick="selectColumn(1)">Column 1</button>
+            <button onclick="selectColumn(2)">Column 2</button>
+            <button onclick="selectColumn(3)">Column 3</button>
+          </div>
+        </div>
+        <div class="card-grid" id="card-grid"></div>
+      </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <p>Your card is:</p>
+        <div id="revealed-card"></div>
+        <button onclick="resetGame()">Play Again</button>
+      </div>
+    </div>
+
+    <script>
+      async function loadCards() {
+        const response = await fetch("/get_cards");
+        const data = await response.json();
+
+        const cardGrid = document.getElementById("card-grid");
+        cardGrid.innerHTML = "";
+
+        data.cards.forEach((card) => {
+          const cardElement = document.createElement("div");
+          cardElement.className = "card";
+
+          // Dynamically create image path based on card rank and suit
+          const cardImage = document.createElement("img");
+          const imgPath = `/static/cards/${card.rank.toLowerCase()}_of_${card.suit.toLowerCase()}.png`;
+          cardImage.src = imgPath;
+          cardElement.appendChild(cardImage);
+          cardGrid.appendChild(cardElement);
+        });
+      }
+
+      async function selectColumn(columnNumber) {
+        const response = await fetch("/select_column", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ column: columnNumber }),
+        });
+
+        const data = await response.json();
+        if (data.round < 3) {
+          loadCards();
+        } else {
+          // Show the modal with the revealed card
+          const revealedCardDiv = document.getElementById("revealed-card");
+          const imgPath = `/static/cards/${data.revealed_card.rank.toLowerCase()}_of_${data.revealed_card.suit.toLowerCase()}.png`;
+          revealedCardDiv.innerHTML = `<img src="${imgPath}">`;
+
+          document.getElementById("myModal").style.display = "block";
+        }
+      }
+
+      function closeModal() {
+        document.getElementById("myModal").style.display = "none";
+      }
+
+      async function resetGame() {
+        const response = await fetch("/reset", {
+          method: "POST",
+        });
+        const data = await response.json();
+        alert(data.message);
+
+        // Reset the game and close modal
+        closeModal();
+        loadCards(); // Reload the cards for a new game
+      }
+
+      window.onload = loadCards;
+    </script>
+  </body>
+</html>
